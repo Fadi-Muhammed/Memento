@@ -1,11 +1,11 @@
 import twilio from 'twilio'
 
-if (!process.env.TWILIO_ACCOUNT_SID) throw new Error('Missing TWILIO_ACCOUNT_SID')
-if (!process.env.TWILIO_AUTH_TOKEN) throw new Error('Missing TWILIO_AUTH_TOKEN')
+export function getTwilioClient() {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID
+  const authToken = process.env.TWILIO_AUTH_TOKEN
 
-export const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-)
+  if (!accountSid) throw new Error('Missing TWILIO_ACCOUNT_SID')
+  if (!authToken) throw new Error('Missing TWILIO_AUTH_TOKEN')
 
-export const WHATSAPP_NUMBER = process.env.TWILIO_WHATSAPP_NUMBER!
+  return twilio(accountSid, authToken)
+}
