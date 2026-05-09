@@ -1,8 +1,13 @@
 import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { Card, CardBody } from '@/components/ui/card'
-import { buttonVariants } from '@/components/ui/button'
 import { BotToggle } from '@/components/bot-toggle'
+
+const linkClass =
+  'inline-flex items-center justify-center text-sm font-medium h-12 px-6 text-base rounded-md border border-border bg-surface-1 text-text-primary hover:bg-surface-2 transition-colors duration-base ease-out-quart'
+
+const ghostLinkClass =
+  'inline-flex items-center justify-center text-sm font-medium h-12 px-6 text-base rounded-md text-text-secondary hover:bg-surface-1 hover:text-text-primary transition-colors duration-base ease-out-quart'
 
 export default async function TodayPage() {
   const shopId = process.env.SHOP_ID!
@@ -75,16 +80,16 @@ export default async function TodayPage() {
       </Card>
 
       <div className="grid grid-cols-2 gap-3">
-        <Link href="/leads" className={buttonVariants({ variant: 'secondary', size: 'lg' })}>
+        <Link href="/leads" className={linkClass}>
           View Leads
         </Link>
-        <Link href="/orders" className={buttonVariants({ variant: 'secondary', size: 'lg' })}>
+        <Link href="/orders" className={linkClass}>
           View Orders
         </Link>
-        <Link href="/customers" className={buttonVariants({ variant: 'secondary', size: 'lg' })}>
+        <Link href="/customers" className={linkClass}>
           View Customers
         </Link>
-        <Link href="#" className={buttonVariants({ variant: 'ghost', size: 'lg' })}>
+        <Link href="#" className={ghostLinkClass}>
           Settings
         </Link>
       </div>
