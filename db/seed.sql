@@ -1,0 +1,1 @@
+-- Dev seed data — inserts one shop, a handful of customers, leads, and orders for local testing

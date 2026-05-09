@@ -1,0 +1,1 @@
+-- Full Postgres schema for Memento v1 — 7 tables with RLS enabled on all, no policies (server-side only via service role)
