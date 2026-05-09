@@ -1,48 +1,51 @@
-import OpenAI from 'openai'
+const LLM_BASE_URL = process.env.LLM_BASE_URL ?? 'https://openrouter.ai/api/v1'
 
-if (!process.env.OPENROUTER_API_KEY) throw new Error('Missing OPENROUTER_API_KEY')
-if (!process.env.LLM_MODEL) throw new Error('Missing LLM_MODEL')
-
-const openrouter = new OpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: process.env.LLM_BASE_URL ?? 'https://openrouter.ai/api/v1',
-})
-
-export interface LLMExtractionResult {
-  extracted: Record<string, string | boolean | null>
-  reply: string
-  confidence: number
-  escalate: boolean
-}
-
-// Called once per inbound bot message — extracts structured data and returns the next reply
-export async function extractAndReply(
-  systemPrompt: string,
-  conversationHistory: OpenAI.Chat.ChatCompletionMessageParam[],
+export async function callLLM(params: {
+  systemPrompt: string
   userMessage: string
-): Promise<LLMExtractionResult> {
-  const response = await openrouter.chat.completions.create({
-    model: process.env.LLM_MODEL!,
+  model?: string
+}): Promise<string> {
+  const apiKey = process.env.OPENROUTER_API_KEY
+  if (!apiKey) throw new Error('Missing OPENROUTER_API_KEY')
+
+  const model = params.model ?? process.env.LLM_MODEL
+  if (!model) throw new Error('Missing LLM_MODEL — set env var or pass model in params')
+
+  const body = JSON.stringify({
+    model,
     messages: [
-      { role: 'system', content: systemPrompt },
-      ...conversationHistory,
-      { role: 'user', content: userMessage },
+      { role: 'system', content: params.systemPrompt },
+      { role: 'user', content: params.userMessage },
     ],
-    response_format: { type: 'json_object' },
+    max_tokens: 512,
     temperature: 0.2,
   })
 
-  const raw = response.choices[0]?.message?.content ?? '{}'
-
-  try {
-    const parsed = JSON.parse(raw) as LLMExtractionResult
-    return {
-      extracted: parsed.extracted ?? {},
-      reply: parsed.reply ?? '',
-      confidence: parsed.confidence ?? 1,
-      escalate: parsed.escalate ?? false,
-    }
-  } catch {
-    return { extracted: {}, reply: '', confidence: 0, escalate: true }
+  const headers = {
+    'Authorization': `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
   }
+
+  let response: Response
+
+  // One retry on network failure only — not on 4xx/5xx
+  try {
+    response = await fetch(`${LLM_BASE_URL}/chat/completions`, { method: 'POST', headers, body })
+  } catch {
+    response = await fetch(`${LLM_BASE_URL}/chat/completions`, { method: 'POST', headers, body })
+  }
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(`LLM request failed — status ${response.status}: ${text}`)
+  }
+
+  const data = await response.json() as {
+    choices: { message: { content: string } }[]
+  }
+
+  const content = data.choices?.[0]?.message?.content
+  if (!content) throw new Error('LLM returned empty content')
+
+  return content
 }
