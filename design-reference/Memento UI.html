@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Memento — UI</title>
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #f0eee9; }
+    #root { height: 100%; }
+  </style>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <template id="__bundler_thumbnail">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#1a1a1a"/>
+      <text x="50" y="62" text-anchor="middle" fill="#f0eee9"
+            font-family="Georgia, serif" font-size="42" font-style="italic">m</text>
+    </svg>
+  </template>
+  <div id="root"></div>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="atoms.jsx"></script>
+  <script type="text/babel" src="screens-mobile.jsx"></script>
+  <script type="text/babel" src="screens-desktop.jsx"></script>
+
+  <script type="text/babel">
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "dark": false,
+      "density": "regular",
+      "ordersView": "swipe"
+    }/*EDITMODE-END*/;
+
+    // Wraps every artboard so density + dark mode apply globally without
+    // needing to re-render the source HTML — just toggle classes on .mm.
+    function MM({ children, t }) {
+      const cls = ['mm'];
+      if (t.dark) cls.push('dark');
+      if (t.density === 'compact') cls.push('compact');
+      return <div className={cls.join(' ')} style={{ width: '100%', height: '100%' }}>{children}</div>;
+    }
+
+    function App() {
+      const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+      const Mobile  = (Cmp, label) => (
+        <DCArtboard id={'m-' + label} label={'Mobile · ' + label} width={MW} height={MH}>
+          <MM t={t}><Cmp /></MM>
+        </DCArtboard>
+      );
+      const Desktop = (Cmp, label) => (
+        <DCArtboard id={'d-' + label} label={'Desktop · ' + label} width={DW} height={DH}>
+          <MM t={t}><Cmp /></MM>
+        </DCArtboard>
+      );
+      // Toggle Kanban vs swipeable list for orders pipeline.
+      const MobileOrdersView  = MobileOrders;       // already swipeable list
+      const DesktopOrdersView = t.ordersView === 'list'
+        ? DesktopOrdersList
+        : DesktopOrders;
+
+      return (<>
+        <DesignCanvas>
+          <DCSection id="auth"      title="01 · Auth"
+            subtitle="Magic-link sign-in. Single owner, single shop in v1.">
+            {Mobile(MobileLogin,  'Login')}
+            {Desktop(DesktopLogin, 'Login')}
+          </DCSection>
+
+          <DCSection id="today"     title="02 · Today"
+            subtitle="Funnel-top dashboard: new leads · orders due · ready for pickup · bot status.">
+            {Mobile(MobileToday,   'Today')}
+            {Desktop(DesktopToday,  'Today')}
+          </DCSection>
+
+          <DCSection id="leads"     title="03 · Leads"
+            subtitle="Inbound from Meta ads, qualified by the bot. List + detail with WhatsApp transcript and follow-up sequence state.">
+            {Mobile(MobileLeads,        'List')}
+            {Mobile(MobileLeadDetail,   'Detail')}
+            {Desktop(DesktopLeads,      'List')}
+            {Desktop(DesktopLeadDetail, 'Detail')}
+          </DCSection>
+
+          <DCSection id="customers" title="04 · Customers"
+            subtitle="Searchable by phone (load-bearing UX). Profile carries measurements, fabric prefs, full message history, past orders.">
+            {Mobile(MobileCustomers,         'List + search')}
+            {Mobile(MobileCustomerProfile,   'Profile')}
+            {Desktop(DesktopCustomers,       'List + search')}
+            {Desktop(DesktopCustomerProfile, 'Profile')}
+          </DCSection>
+
+          <DCSection id="orders"    title="05 · Orders"
+            subtitle="6-stage pipeline with auto-notify on confirmed · fitting · ready. Mobile = swipeable list, desktop = Kanban (toggle in Tweaks).">
+            {Mobile(MobileOrdersView,    'Pipeline')}
+            {Mobile(MobileOrderDetail,   'Detail')}
+            {Desktop(DesktopOrdersView,  'Pipeline')}
+            {Desktop(DesktopOrderDetail, 'Detail')}
+          </DCSection>
+        </DesignCanvas>
+
+        <TweaksPanel title="Tweaks">
+          <TweakSection label="Theme" />
+          <TweakToggle label="Dark mode"   value={t.dark}    onChange={(v) => setTweak('dark', v)} />
+          <TweakRadio  label="Density"     value={t.density} options={['compact', 'regular']}
+                       onChange={(v) => setTweak('density', v)} />
+          <TweakSection label="Orders pipeline (desktop)" />
+          <TweakRadio  label="Layout"      value={t.ordersView} options={['kanban', 'list']}
+                       onChange={(v) => setTweak('ordersView', v === 'kanban' ? 'kanban' : 'list')} />
+        </TweaksPanel>
+      </>);
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
