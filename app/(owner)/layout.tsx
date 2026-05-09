@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase/server'
+import { NavLink } from '@/components/ui/nav-link'
 
 const NAV_LINKS = [
-  { href: '/', label: 'Today' },
-  { href: '/leads', label: 'Leads' },
+  { href: '/',          label: 'Today',     exact: true },
+  { href: '/leads',     label: 'Leads' },
   { href: '/customers', label: 'Customers' },
-  { href: '/orders', label: 'Orders' },
+  { href: '/orders',    label: 'Orders' },
 ]
 
 export default async function OwnerLayout({ children }: { children: React.ReactNode }) {
@@ -16,17 +16,12 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
   if (!session) redirect('/login')
 
   return (
-    <div className="min-h-screen bg-white">
-      <nav className="sticky top-0 z-10 border-b border-zinc-200 bg-white">
-        <div className="flex items-center gap-1 px-4 h-12 overflow-x-auto">
-          {NAV_LINKS.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className="shrink-0 px-3 py-1.5 text-sm font-medium text-zinc-600 rounded-md hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
-            >
-              {label}
-            </Link>
+    <div className="min-h-screen bg-surface-0">
+      <nav className="glass sticky top-0 z-20">
+        <div className="flex items-center gap-1 px-4 h-12 max-w-2xl mx-auto overflow-x-auto">
+          <span className="text-sm font-semibold text-text-primary mr-3 shrink-0">Memento</span>
+          {NAV_LINKS.map(({ href, label, exact }) => (
+            <NavLink key={href} href={href} label={label} exact={exact} />
           ))}
         </div>
       </nav>
