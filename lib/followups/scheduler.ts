@@ -38,7 +38,15 @@ const TRANSITIONS: Record<LeadFollowupStage, Transition> = {
 // Main export
 // ─────────────────────────────────────────────
 
-export async function runFollowupCron(supabase: SupabaseClient): Promise<void> {
+interface SendDeps {
+  sendFreeform: typeof sendFreeform
+  sendTemplate: typeof sendTemplate
+}
+
+export async function runFollowupCron(
+  supabase: SupabaseClient,
+  deps: SendDeps = { sendFreeform, sendTemplate },
+): Promise<void> {
   const shopId = process.env.SHOP_ID!
 
   const { data: leads, error } = await supabase
@@ -60,7 +68,7 @@ export async function runFollowupCron(supabase: SupabaseClient): Promise<void> {
   for (const raw of leads ?? []) {
     const lead = raw as unknown as LeadRow
     try {
-      await processLead(supabase, lead)
+      await processLead(supabase, lead, deps)
     } catch (err) {
       console.error(`[followup-cron] Unhandled error for lead ${lead.id}:`, err)
     }
@@ -71,7 +79,7 @@ export async function runFollowupCron(supabase: SupabaseClient): Promise<void> {
 // Per-lead processing
 // ─────────────────────────────────────────────
 
-async function processLead(supabase: SupabaseClient, lead: LeadRow): Promise<void> {
+async function processLead(supabase: SupabaseClient, lead: LeadRow, deps: SendDeps): Promise<void> {
   const transition = TRANSITIONS[lead.followup_stage as LeadFollowupStage]
   if (!transition || !lead.qualified_at) return
 
@@ -109,10 +117,10 @@ async function processLead(supabase: SupabaseClient, lead: LeadRow): Promise<voi
 
   try {
     if (transition.sendStage === '2h') {
-      await sendFreeform(customer.phone, FOLLOWUP_2H_MESSAGE(displayName, garment))
+      await deps.sendFreeform(customer.phone, FOLLOWUP_2H_MESSAGE(displayName, garment))
     } else {
       const tmpl = FOLLOWUP_TEMPLATES[transition.sendStage]
-      await sendTemplate(customer.phone, tmpl.name, tmpl.variables(displayName, garment))
+      await deps.sendTemplate(customer.phone, tmpl.name, tmpl.variables(displayName, garment))
     }
   } catch (err) {
     sendErr = err as Error
